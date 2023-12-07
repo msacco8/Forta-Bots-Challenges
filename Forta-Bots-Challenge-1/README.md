@@ -1,4 +1,4 @@
-# Large Tether Transfer Agent
+# Nethermind Update and Creation Detection Bot
 
 ## Description
 
