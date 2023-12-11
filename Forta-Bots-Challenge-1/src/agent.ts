@@ -20,51 +20,35 @@ export const provideHandleTransaction = (
       return findings;
     }
 
-    // filter TransactionEvent for bot deployments to Forta registry
-    const deploymentCalls = txEvent.filterFunction(createAgentSignature, fortaRegistryAddress);
+    // filter TransactionEvent for bot deployments and updates on Forta registry
+    const functionCalls = txEvent.filterFunction([createAgentSignature, updateAgentSignature], fortaRegistryAddress);
 
-    // filter TransactionEvent for bot updates on Forta registry
-    const updateCalls = txEvent.filterFunction(updateAgentSignature, fortaRegistryAddress);
+    functionCalls.forEach((call) => {
+      // boolean to update metadata based on type of function call
+      const isCreateAgent = call.name === "createAgent";
 
-    deploymentCalls.forEach((call) => {
-      // form metadata from deploy bot function arguments
-      const argInfo = {
-        agentID: call.args[0].toString(),
-        from: call.args[1],
-        metadata: call.args[2],
-        chainIDs: call.args[3][0].toString(),
-      };
-
-      // add info of each deploy call to findings
+      // add info of each call to findings
       findings.push(
         Finding.fromObject({
-          name: "Nethermind Forta Bot Deployment",
-          description: `New bot has been deployed from ${nethermindDeployAddress}`,
-          alertId: "FORTA-1",
+          name: `Nethermind Forta Bot ${isCreateAgent ? "Deployment" : "Updated"}`,
+          description: isCreateAgent
+            ? `New bot has been deployed from ${nethermindDeployAddress}`
+            : `Bot has been updated by ${nethermindDeployAddress}`,
+          alertId: isCreateAgent ? "NETHERMIND-1" : "NETHERMIND-2",
           severity: FindingSeverity.Low,
           type: FindingType.Info,
-          metadata: argInfo,
-        })
-      );
-    });
-
-    updateCalls.forEach((call) => {
-      // form metadata from update bot function arguments
-      const argInfo = {
-        agentID: call.args[0].toString(),
-        metadata: call.args[1],
-        chainIDs: call.args[2][0].toString(),
-      };
-
-      // add info of each update call to findings
-      findings.push(
-        Finding.fromObject({
-          name: "Nethermind Forta Bot Updated",
-          description: `Bot has been updated by ${nethermindDeployAddress}`,
-          alertId: "FORTA-2",
-          severity: FindingSeverity.Low,
-          type: FindingType.Info,
-          metadata: argInfo,
+          metadata: isCreateAgent
+            ? {
+                agentID: call.args[0].toString(),
+                from: call.args[1],
+                metadata: call.args[2],
+                chainIDs: call.args[3].join(", "),
+              }
+            : {
+                agentID: call.args[0].toString(),
+                metadata: call.args[1],
+                chainIDs: call.args[2].join(", "),
+              },
         })
       );
     });

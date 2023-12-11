@@ -1,5 +1,5 @@
 {
-  "name": "Forta-Bots-Challenge-1",
+  "name": "forta-bots-challenge-1",
   "displayName": "Nethermind Create/Update Forta Bot",
   "version": "0.0.1",
   "description": "Forta Bot that captures creation and update of bots deployed by Nethermind",
@@ -8,7 +8,7 @@
   "licenseUrl": "https://github.com/forta-network/forta-bot-sdk/blob/master/starter-project/LICENSE.md",
   "promoUrl": "https://forta.org",
   "chainIds": [
-    1
+    137
   ],
   "scripts": {
     "build": "tsc",

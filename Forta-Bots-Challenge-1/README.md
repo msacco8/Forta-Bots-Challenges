@@ -10,17 +10,25 @@ This bot detects created and updated bots deployed by Nethermind to the Forta Bo
 
 ## Alerts
 
-- FORTA-1
-  - Fired when a new bot has been deployed to the Forta Bot Registry by Nethermind
-  - Severity is always set to "low" (mention any conditions where it could be something else)
-  - Type is always set to "info" (mention any conditions where it could be something else)
-  - agentID, address deployed from, call metadata and chainIDs are stored
+- NETHERMIND-1
 
-- FORTA-1
+  - Fired when a new bot has been deployed to the Forta Bot Registry by Nethermind
+  - Severity is always set to "low"
+  - Type is always set to "info"
+  - Metadata fields
+    - "agentID": ID of the bot
+    - "from" : the address used to deploy bot
+    - "metadata": misc. information about bot
+    - "chainIDs": list of chains the bot works on
+
+- NETHERMIND-2
   - Fired when a bot in the Forta Bot Registry is updated by Nethermind
-  - Severity is always set to "low" (mention any conditions where it could be something else)
-  - Type is always set to "info" (mention any conditions where it could be something else)
-  - agentID, call metadata and chainIDs are stored
+  - Severity is always set to "low"
+  - Type is always set to "info"
+  - Metadata fields
+    - "agentID": ID of the bot
+    - "metadata": misc. information about bot
+    - "chainIDs": list of chain IDs for the chains the bot works on
 
 ## Test Data
 
