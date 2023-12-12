@@ -1,10 +1,10 @@
 {
-  "name": "forta-agent-starter",
-  "displayName": "Forta Agent Starter",
+  "name": "forta-bots-challenge-2",
+  "displayName": "Nethermind Uniswap V3 Swap Detection Bot",
   "version": "0.0.1",
-  "description": "Forta Agent Typescript starter project",
-  "longDescription": "Welcome to the Forta Agent JavaScript starter project!\n\nForta Network presents this starter project as an entry point for bot developers who want to integrate with the Forta Network ecosystem. As part of our commitment to empowering developers, this project provides a foundation for building powerful and secure bots that can interact with the Forta platform and take advantage of its cutting-edge capabilities.\n\nThe Forta Agent SDK and CLI tool offer a seamless experience for developers who wish to leverage the decentralized and trustless environment provided by the Forta Network. Whether you're interested in creating DeFi bots, monitoring smart contract transactions, or generating real-time alerts, this starter project sets you on the right path to achieve your goals.\n\nJoin the Forta Network community and learn more about our mission to revolutionize decentralized finance and blockchain analytics: https://forta.org/",
-  "repository": "https://github.com/forta-network/forta-bot-sdk/tree/master/starter-project",
+  "description": "Detects Swap events emitted by pool contracts deployed by Uniswap V3",
+  "longDescription": "This bot filters for emitted Swap events then calls the read factory function on the pool to verify if the pool was deployed by Uniswap V3.",
+  "repository": "https://github.com/msacco8/Forta-Bots-Challenges/Forta-Bots-Challenge-2",
   "licenseUrl": "https://github.com/forta-network/forta-bot-sdk/blob/master/starter-project/LICENSE.md",
   "promoUrl": "https://forta.org",
   "chainIds": [
@@ -32,11 +32,12 @@
     "test": "jest"
   },
   "dependencies": {
-    "forta-agent": "^0.1.45",
-    "forta-agent-tools": "^3.2.10",
     "lru-cache": "^10.1.0"
   },
   "devDependencies": {
+    "forta-agent": "^0.1.45",
+    "forta-agent-tools": "^3.2.10",
+    "prettier": "^3.1.1",
     "@types/jest": "^27.0.1",
     "@types/nodemon": "^1.19.0",
     "jest": "^27.0.6",
