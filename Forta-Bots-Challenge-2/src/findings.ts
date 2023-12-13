@@ -4,7 +4,7 @@ export const createFinding = (args: any, poolAddress: string) => {
   return Finding.fromObject({
     name: `Uniswap V3 Swap Detected`,
     description: `A swap has been detected on Uniswap V3's pool at ${poolAddress.toLowerCase()} between ${args[0].toLowerCase()} and ${
-      args[1].toLowerCase
+      args[1].toLowerCase()
     }`,
     alertId: "NETHERMIND-1",
     severity: FindingSeverity.Low,
