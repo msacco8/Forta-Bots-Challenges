@@ -22,6 +22,8 @@ describe("UniswapFetcher test suite", () => {
   const mockInitCodeHash = keccak256(createAddress("0xff2"));
   const mockProvider: MockEthersProvider = new MockEthersProvider();
 
+  let fetcher: UniswapFetcher;
+
   const getPoolAddress = (
     factoryAddress: string,
     initCodeHash: string,
@@ -52,11 +54,12 @@ describe("UniswapFetcher test suite", () => {
     });
   };
 
-  beforeEach(() => mockProvider.clear());
+  beforeEach(() => {
+    fetcher = new UniswapFetcher(mockProvider as any, mockFactoryAddress, mockInitCodeHash);
+    mockProvider.clear();
+  });
 
   it("should return false if pool's ABI doesn't match Uniswap's pools", async () => {
-    const fetcher: UniswapFetcher = new UniswapFetcher(mockProvider as any, mockFactoryAddress, mockInitCodeHash);
-
     const [block, token0, token1, fee] = TEST_DATA[0];
     const poolAddress = getPoolAddress(mockFactoryAddress, mockInitCodeHash, [token0, token1, fee]);
 
@@ -70,8 +73,6 @@ describe("UniswapFetcher test suite", () => {
   });
 
   it("should return false if pool contract was deployed by wrong factory contract", async () => {
-    const fetcher: UniswapFetcher = new UniswapFetcher(mockProvider as any, mockFactoryAddress, mockInitCodeHash);
-
     const wrongFactoryAddress = createAddress("0xae4");
     const wrongInitCodeHash = keccak256(createAddress("0xae5"));
     const [block, token0, token1, fee] = TEST_DATA[0];
@@ -92,8 +93,6 @@ describe("UniswapFetcher test suite", () => {
   });
 
   it("should return true if pool was deployed by factory contract", async () => {
-    const fetcher: UniswapFetcher = new UniswapFetcher(mockProvider as any, mockFactoryAddress, mockInitCodeHash);
-
     for (let [block, token0, token1, fee] of TEST_DATA) {
       const poolAddress = getPoolAddress(mockFactoryAddress, mockInitCodeHash, [token0, token1, fee]);
 

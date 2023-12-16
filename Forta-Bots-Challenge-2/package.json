@@ -1,6 +1,6 @@
 {
-  "name": "forta-bots-challenge-2",
-  "displayName": "Nethermind Uniswap V3 Swap Detection Bot",
+  "name": "Uniswap V3 Swap Detection Bot",
+  "displayName": "Uniswap V3 Swap Detection Bot",
   "version": "0.0.1",
   "description": "Detects Swap events emitted by pool contracts deployed by Uniswap V3",
   "longDescription": "This bot filters for emitted Swap events then calls the read factory function on the pool to verify if the pool was deployed by Uniswap V3.",
@@ -32,7 +32,6 @@
     "test": "jest"
   },
   "dependencies": {
-    "@uniswap/v3-core": "^1.0.1",
     "lru-cache": "^10.1.0"
   },
   "devDependencies": {

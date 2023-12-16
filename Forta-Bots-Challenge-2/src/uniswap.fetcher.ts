@@ -17,6 +17,7 @@ export default class UniswapFetcher {
   private cache: LRUCache<string, PoolData>;
 
   constructor(provider: providers.Provider, factoryAddress: string, initCodeHash: string) {
+    console.log("constructed!");
     this.provider = provider;
     this.factoryAddress = factoryAddress;
     this.initCodeHash = initCodeHash;

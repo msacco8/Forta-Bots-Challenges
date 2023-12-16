@@ -1,6 +1,5 @@
 import { Finding, FindingSeverity, FindingType } from "forta-agent";
 import { PoolData } from "./uniswap.fetcher";
-import { BigNumber } from "ethers";
 
 export const createFinding = (args: any, poolAddress: string, poolData: PoolData) => {
   return Finding.fromObject({

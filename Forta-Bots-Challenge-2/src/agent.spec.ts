@@ -1,10 +1,10 @@
-import { HandleTransaction } from "forta-agent";
-import { provideHandleTransaction } from "./agent";
+import { HandleTransaction, Initialize } from "forta-agent";
+import { provideHandleTransaction, provideInitialize } from "./agent";
 import { UNISWAP_POOL_ABI, ERC20_ABI, SWAP_EVENT } from "./constants";
 import { MockEthersProvider, TestTransactionEvent } from "forta-agent-tools/lib/test";
 import { createAddress } from "forta-agent-tools";
 import { Interface, defaultAbiCoder, getCreate2Address, solidityKeccak256, keccak256 } from "ethers/lib/utils";
-import { createFinding, createTestFinding } from "./findings";
+import { createTestFinding } from "./findings";
 import { BigNumber } from "ethers";
 import { PoolData } from "./uniswap.fetcher";
 
@@ -69,6 +69,7 @@ const TEST_POOL_DATA_2: PoolData = {
 
 describe("uniswap v3 swap detection", () => {
   let handleTransaction: HandleTransaction;
+  let initialize: Initialize;
   let mockTxEvent = new TestTransactionEvent();
   const mockProvider: MockEthersProvider = new MockEthersProvider();
   const mockUniswapFactory = createAddress("0x01");
@@ -86,6 +87,7 @@ describe("uniswap v3 swap detection", () => {
     const salt = solidityKeccak256(["bytes"], [encoded]);
     return getCreate2Address(factoryAddress, salt, initCodeHash);
   };
+
   const mockPoolCalls = (poolAddress: string, block: number, iface: Interface, calls: [string, any][]) => {
     for (let [call, output] of calls) {
       mockProvider.addCallTo(poolAddress, block, iface, call, {
@@ -107,10 +109,12 @@ describe("uniswap v3 swap detection", () => {
   };
 
   beforeAll(() => {
-    handleTransaction = provideHandleTransaction(mockProvider as any, mockUniswapFactory, mockInitCodeHash, SWAP_EVENT);
+    handleTransaction = provideHandleTransaction(SWAP_EVENT);
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    initialize = provideInitialize(mockProvider as any, mockUniswapFactory, mockInitCodeHash);
+    await initialize();
     mockTxEvent = new TestTransactionEvent();
   });
 
