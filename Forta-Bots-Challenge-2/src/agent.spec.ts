@@ -1,19 +1,18 @@
 import { HandleTransaction } from "forta-agent";
 import { provideHandleTransaction } from "./agent";
-import { READ_FACTORY_ABI, SWAP_EVENT } from "./constants";
+import { UNISWAP_POOL_ABI, ERC20_ABI, SWAP_EVENT } from "./constants";
 import { MockEthersProvider, TestTransactionEvent } from "forta-agent-tools/lib/test";
 import { createAddress } from "forta-agent-tools";
-import { Interface } from "ethers/lib/utils";
-import { createFinding } from "./findings";
+import { Interface, defaultAbiCoder, getCreate2Address, solidityKeccak256, keccak256 } from "ethers/lib/utils";
+import { createFinding, createTestFinding } from "./findings";
 import { BigNumber } from "ethers";
+import { PoolData } from "./uniswap.fetcher";
 
-// format [block, poolAddress]
-const TEST_CALL_DATA: [number, string][] = [
-  [10, createAddress("0xee5")],
-  [20, createAddress("0xfe6")],
-  [30, createAddress("0xfe7")],
-  [40, createAddress("0xfe8")],
-  [50, createAddress("0xfe9")],
+// format: [blockNumber, token0, token1, fee]
+const TEST_DATA: [number, string, string, BigNumber][] = [
+  [10, createAddress("0xaa1"), createAddress("0xbb1"), BigNumber.from(1)],
+  [20, createAddress("0xaa2"), createAddress("0xbb2"), BigNumber.from(2)],
+  [30, createAddress("0xaa3"), createAddress("0xbb3"), BigNumber.from(3)],
 ];
 
 // format: [sender,  recipient,  amount0, amount1, sqrtPriceX96, liquidity, tick]
@@ -47,16 +46,68 @@ const TEST_LOGS: [string, string, BigNumber, BigNumber, BigNumber, BigNumber, Bi
   ],
 ];
 
+const TEST_POOL_DATA_0: PoolData = {
+  isUniswapPool: true,
+  token0: "TKN0",
+  token1: "TKN1",
+  fee: 1,
+};
+
+const TEST_POOL_DATA_1: PoolData = {
+  isUniswapPool: true,
+  token0: "TKN0",
+  token1: "TKN1",
+  fee: 2,
+};
+
+const TEST_POOL_DATA_2: PoolData = {
+  isUniswapPool: true,
+  token0: "TKN0",
+  token1: "TKN1",
+  fee: 3,
+};
+
 describe("uniswap v3 swap detection", () => {
   let handleTransaction: HandleTransaction;
   let mockTxEvent = new TestTransactionEvent();
   const mockProvider: MockEthersProvider = new MockEthersProvider();
   const mockUniswapFactory = createAddress("0x01");
-  const READ_FACTORY_IFACE = new Interface(READ_FACTORY_ABI);
+  const mockInitCodeHash = keccak256(createAddress("0x02"));
+  const ERC20_IFACE = new Interface(ERC20_ABI);
+  const UNISWAP_POOL_IFACE = new Interface(UNISWAP_POOL_ABI);
   const INCORRECT_IFACE = new Interface(["function foo() external view returns (address)"]);
 
+  const getPoolAddress = (
+    factoryAddress: string,
+    initCodeHash: string,
+    saltValues: [string, string, BigNumber]
+  ): string => {
+    const encoded = defaultAbiCoder.encode(["address", "address", "uint24"], saltValues);
+    const salt = solidityKeccak256(["bytes"], [encoded]);
+    return getCreate2Address(factoryAddress, salt, initCodeHash);
+  };
+  const mockPoolCalls = (poolAddress: string, block: number, iface: Interface, calls: [string, any][]) => {
+    for (let [call, output] of calls) {
+      mockProvider.addCallTo(poolAddress, block, iface, call, {
+        inputs: [],
+        outputs: [output],
+      });
+    }
+  };
+
+  const mockERC20Calls = (token0: string, token1: string, block: number) => {
+    mockProvider.addCallTo(token0, block, ERC20_IFACE, "symbol", {
+      inputs: [],
+      outputs: ["TKN0"],
+    });
+    mockProvider.addCallTo(token1, block, ERC20_IFACE, "symbol", {
+      inputs: [],
+      outputs: ["TKN1"],
+    });
+  };
+
   beforeAll(() => {
-    handleTransaction = provideHandleTransaction(SWAP_EVENT, mockUniswapFactory, mockProvider as any);
+    handleTransaction = provideHandleTransaction(mockProvider as any, mockUniswapFactory, mockInitCodeHash, SWAP_EVENT);
   });
 
   beforeEach(() => {
@@ -68,29 +119,36 @@ describe("uniswap v3 swap detection", () => {
     expect(findings).toStrictEqual([]);
   });
 
-  it("returns empty findings if there is a swap event not on Uniswap V3", async () => {
-    const wrongFactoryAddress = createAddress("0x05");
-    const [block, poolAddress] = TEST_CALL_DATA[0];
+  it("returns empty findings if there is a swap on a pool with same tokens and fee deployed by a different factory", async () => {
+    const wrongFactoryAddress = createAddress("0x03");
+    const [block, token0, token1, fee] = TEST_DATA[0];
 
-    mockProvider.addCallTo(poolAddress, block, READ_FACTORY_IFACE, "factory", {
-      inputs: [],
-      outputs: [wrongFactoryAddress],
-    });
+    const badPoolAddress = getPoolAddress(wrongFactoryAddress, mockInitCodeHash, [token0, token1, fee]);
 
-    mockTxEvent.setBlock(block).addEventLog(SWAP_EVENT, poolAddress, TEST_LOGS[0]);
+    mockPoolCalls(badPoolAddress, block, UNISWAP_POOL_IFACE, [
+      ["token0", token0],
+      ["token1", token1],
+      ["fee", fee],
+    ]);
+
+    mockERC20Calls(token0, token1, block);
+
+    mockTxEvent.setBlock(block).addEventLog(SWAP_EVENT, badPoolAddress, TEST_LOGS[0]);
 
     const findings = await handleTransaction(mockTxEvent);
 
     expect(findings).toStrictEqual([]);
   });
 
-  it("returns empty findings if there is no factory function on pool contract", async () => {
-    const [block, poolAddress] = TEST_CALL_DATA[0];
+  it("returns empty findings if there is a swap on a pool with incorrect ABI", async () => {
+    const wrongInitCodeHash = keccak256(createAddress("0x03"));
+    const [block, token0, token1, fee] = TEST_DATA[0];
 
-    mockProvider.addCallTo(poolAddress, block, INCORRECT_IFACE, "foo", {
-      inputs: [],
-      outputs: [mockUniswapFactory],
-    });
+    const poolAddress = getPoolAddress(mockUniswapFactory, wrongInitCodeHash, [token0, token1, fee]);
+
+    mockPoolCalls(poolAddress, block, INCORRECT_IFACE, [["foo", token0]]);
+
+    mockERC20Calls(token0, token1, block);
 
     mockTxEvent.setBlock(block).addEventLog(SWAP_EVENT, poolAddress, TEST_LOGS[0]);
 
@@ -100,48 +158,55 @@ describe("uniswap v3 swap detection", () => {
   });
 
   it("returns correct findings if there is one swap on Uniswap V3", async () => {
-    const [block, poolAddress] = TEST_CALL_DATA[0];
+    const [block, token0, token1, fee] = TEST_DATA[0];
 
-    mockProvider.addCallTo(poolAddress, block, READ_FACTORY_IFACE, "factory", {
-      inputs: [],
-      outputs: [mockUniswapFactory],
-    });
+    const poolAddress = getPoolAddress(mockUniswapFactory, mockInitCodeHash, [token0, token1, fee]);
+
+    mockPoolCalls(poolAddress, block, UNISWAP_POOL_IFACE, [
+      ["token0", token0],
+      ["token1", token1],
+      ["fee", fee],
+    ]);
+
+    mockERC20Calls(token0, token1, block);
 
     mockTxEvent.setBlock(block).addEventLog(SWAP_EVENT, poolAddress, TEST_LOGS[0]);
 
     const findings = await handleTransaction(mockTxEvent);
 
-    expect(findings).toStrictEqual([createFinding(TEST_LOGS[0], poolAddress)]);
+    expect(findings).toStrictEqual([
+      expect.objectContaining(createTestFinding(TEST_LOGS[0], poolAddress, TEST_POOL_DATA_0)),
+    ]);
   });
 
   it("returns correct findings if there are multiple swaps from multiple pools on Uniswap V3", async () => {
-    const [blockOne, poolAddressOne] = TEST_CALL_DATA[1];
-    const [blockTwo, poolAddressTwo] = TEST_CALL_DATA[2];
-    mockProvider.addCallTo(poolAddressOne, blockOne, READ_FACTORY_IFACE, "factory", {
-      inputs: [],
-      outputs: [mockUniswapFactory],
-    });
+    let poolAddresses = [];
+    let currentLog = 0;
+    let block = 10;
+    mockTxEvent.setBlock(block);
+    for (let [_, token0, token1, fee] of TEST_DATA) {
+      const poolAddress = getPoolAddress(mockUniswapFactory, mockInitCodeHash, [token0, token1, fee]);
+      poolAddresses.push(poolAddress);
 
-    mockTxEvent
-      .setBlock(blockOne)
-      .addEventLog(SWAP_EVENT, poolAddressOne, TEST_LOGS[0])
-      .addEventLog(SWAP_EVENT, poolAddressOne, TEST_LOGS[1]);
+      mockPoolCalls(poolAddress, block, UNISWAP_POOL_IFACE, [
+        ["token0", token0],
+        ["token1", token1],
+        ["fee", fee],
+      ]);
 
-    const findingsOne = await handleTransaction(mockTxEvent);
+      mockERC20Calls(token0, token1, block);
 
-    mockProvider.addCallTo(poolAddressTwo, blockTwo, READ_FACTORY_IFACE, "factory", {
-      inputs: [],
-      outputs: [mockUniswapFactory],
-    });
+      mockTxEvent.addEventLog(SWAP_EVENT, poolAddress, TEST_LOGS[currentLog]);
 
-    mockTxEvent.setBlock(blockTwo).addEventLog(SWAP_EVENT, poolAddressTwo, TEST_LOGS[2]);
+      currentLog++;
+    }
 
-    const findingsTwo = await handleTransaction(mockTxEvent);
+    const findings = await handleTransaction(mockTxEvent);
 
-    expect(findingsOne.concat(findingsTwo)).toStrictEqual([
-      createFinding(TEST_LOGS[0], poolAddressOne),
-      createFinding(TEST_LOGS[1], poolAddressOne),
-      createFinding(TEST_LOGS[2], poolAddressTwo),
+    expect(findings).toStrictEqual([
+      expect.objectContaining(createTestFinding(TEST_LOGS[0], poolAddresses[0], TEST_POOL_DATA_0)),
+      expect.objectContaining(createTestFinding(TEST_LOGS[1], poolAddresses[1], TEST_POOL_DATA_1)),
+      expect.objectContaining(createTestFinding(TEST_LOGS[2], poolAddresses[2], TEST_POOL_DATA_2)),
     ]);
   });
 });
