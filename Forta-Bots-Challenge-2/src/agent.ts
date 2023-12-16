@@ -23,7 +23,6 @@ export const provideHandleTransaction = (swapEvent: string): HandleTransaction =
     await Promise.all(
       // filter txEvent logs for Swap event
       txEvent.filterLog(swapEvent).map(async (log) => {
-        console.log(fetcher);
         const poolData = await fetcher.isUniswapPool(log.address, txEvent.blockNumber);
 
         // add finding for swaps that took place on pools created by Uniswap V3 factory

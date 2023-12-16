@@ -1,5 +1,5 @@
 {
-  "name": "Uniswap V3 Swap Detection Bot",
+  "name": "uniswap-v3-detection-bot",
   "displayName": "Uniswap V3 Swap Detection Bot",
   "version": "0.0.1",
   "description": "Detects Swap events emitted by pool contracts deployed by Uniswap V3",

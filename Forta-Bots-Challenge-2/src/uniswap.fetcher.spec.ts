@@ -1,6 +1,5 @@
 import { MockEthersProvider } from "forta-agent-tools/lib/test";
 import { createAddress } from "forta-agent-tools";
-import { ERC20_ABI, UNISWAP_POOL_ABI } from "./constants";
 import UniswapFetcher from "./uniswap.fetcher";
 import { Interface, getCreate2Address, keccak256, defaultAbiCoder, solidityKeccak256 } from "ethers/lib/utils";
 import { BigNumber } from "ethers";
@@ -14,45 +13,60 @@ const TEST_DATA: [number, string, string, BigNumber][] = [
   [50, createAddress("0xaa5"), createAddress("0xbb5"), BigNumber.from(5)],
 ];
 
+const ERC20_ABI = ["function symbol() external view returns (string)"];
+const UNISWAP_POOL_ABI = [
+  "function token0() external view returns (address)",
+  "function token1() external view returns (address)",
+  "function fee() external view returns (uint24)",
+];
+
+const ERC20_IFACE = new Interface(ERC20_ABI);
+const UNISWAP_POOL_IFACE = new Interface(UNISWAP_POOL_ABI);
+const INCORRECT_IFACE = new Interface(["function foo() external view returns (address)"]);
+
+const mockFactoryAddress = createAddress("0xff1");
+const mockInitCodeHash = keccak256(createAddress("0xff2"));
+
+const getPoolAddress = (
+  factoryAddress: string,
+  initCodeHash: string,
+  saltValues: [string, string, BigNumber]
+): string => {
+  const encoded = defaultAbiCoder.encode(["address", "address", "uint24"], saltValues);
+  const salt = solidityKeccak256(["bytes"], [encoded]);
+  return getCreate2Address(factoryAddress, salt, initCodeHash);
+};
+
+const mockPoolCalls = (
+  mockProvider: MockEthersProvider,
+  poolAddress: string,
+  block: number,
+  iface: Interface,
+  calls: [string, any][]
+) => {
+  for (let [call, output] of calls) {
+    mockProvider.addCallTo(poolAddress, block, iface, call, {
+      inputs: [],
+      outputs: [output],
+    });
+  }
+};
+
+const mockERC20Calls = (mockProvider: MockEthersProvider, token0: string, token1: string, block: number) => {
+  mockProvider.addCallTo(token0, block, ERC20_IFACE, "symbol", {
+    inputs: [],
+    outputs: ["TKN0"],
+  });
+  mockProvider.addCallTo(token1, block, ERC20_IFACE, "symbol", {
+    inputs: [],
+    outputs: ["TKN1"],
+  });
+};
+
 describe("UniswapFetcher test suite", () => {
-  const UNISWAP_POOL_IFACE = new Interface(UNISWAP_POOL_ABI);
-  const INCORRECT_IFACE = new Interface(["function foo() external view returns (address)"]);
-  const ERC20_IFACE = new Interface(ERC20_ABI);
-  const mockFactoryAddress = createAddress("0xff1");
-  const mockInitCodeHash = keccak256(createAddress("0xff2"));
   const mockProvider: MockEthersProvider = new MockEthersProvider();
 
   let fetcher: UniswapFetcher;
-
-  const getPoolAddress = (
-    factoryAddress: string,
-    initCodeHash: string,
-    saltValues: [string, string, BigNumber]
-  ): string => {
-    const encoded = defaultAbiCoder.encode(["address", "address", "uint24"], saltValues);
-    const salt = solidityKeccak256(["bytes"], [encoded]);
-    return getCreate2Address(factoryAddress, salt, initCodeHash);
-  };
-
-  const mockPoolCalls = (poolAddress: string, block: number, iface: Interface, calls: [string, any][]) => {
-    for (let [call, output] of calls) {
-      mockProvider.addCallTo(poolAddress, block, iface, call, {
-        inputs: [],
-        outputs: [output],
-      });
-    }
-  };
-
-  const mockERC20Calls = (token0: string, token1: string, block: number) => {
-    mockProvider.addCallTo(token0, block, ERC20_IFACE, "symbol", {
-      inputs: [],
-      outputs: ["TKN0"],
-    });
-    mockProvider.addCallTo(token1, block, ERC20_IFACE, "symbol", {
-      inputs: [],
-      outputs: ["TKN1"],
-    });
-  };
 
   beforeEach(() => {
     fetcher = new UniswapFetcher(mockProvider as any, mockFactoryAddress, mockInitCodeHash);
@@ -63,9 +77,9 @@ describe("UniswapFetcher test suite", () => {
     const [block, token0, token1, fee] = TEST_DATA[0];
     const poolAddress = getPoolAddress(mockFactoryAddress, mockInitCodeHash, [token0, token1, fee]);
 
-    mockPoolCalls(poolAddress, block, INCORRECT_IFACE, [["foo", token0]]);
+    mockPoolCalls(mockProvider, poolAddress, block, INCORRECT_IFACE, [["foo", token0]]);
 
-    mockERC20Calls(token0, token1, block);
+    mockERC20Calls(mockProvider, token0, token1, block);
 
     const poolData = await fetcher.isUniswapPool(poolAddress, block);
 
@@ -79,13 +93,32 @@ describe("UniswapFetcher test suite", () => {
 
     const poolAddress = getPoolAddress(wrongFactoryAddress, wrongInitCodeHash, [token0, token1, fee]);
 
-    mockPoolCalls(poolAddress, block, UNISWAP_POOL_IFACE, [
+    mockPoolCalls(mockProvider, poolAddress, block, UNISWAP_POOL_IFACE, [
       ["token0", token0],
       ["token1", token1],
       ["fee", fee],
     ]);
 
-    mockERC20Calls(token0, token1, block);
+    mockERC20Calls(mockProvider, token0, token1, block);
+
+    const poolData = await fetcher.isUniswapPool(poolAddress, block);
+
+    expect(poolData.isUniswapPool).toStrictEqual(false);
+  });
+
+  it("should return false if pool contract was deployed with correct init hash but wrong factory address", async () => {
+    const wrongFactoryAddress = createAddress("0xae4");
+    const [block, token0, token1, fee] = TEST_DATA[0];
+
+    const poolAddress = getPoolAddress(wrongFactoryAddress, mockInitCodeHash, [token0, token1, fee]);
+
+    mockPoolCalls(mockProvider, poolAddress, block, UNISWAP_POOL_IFACE, [
+      ["token0", token0],
+      ["token1", token1],
+      ["fee", fee],
+    ]);
+
+    mockERC20Calls(mockProvider, token0, token1, block);
 
     const poolData = await fetcher.isUniswapPool(poolAddress, block);
 
@@ -96,13 +129,13 @@ describe("UniswapFetcher test suite", () => {
     for (let [block, token0, token1, fee] of TEST_DATA) {
       const poolAddress = getPoolAddress(mockFactoryAddress, mockInitCodeHash, [token0, token1, fee]);
 
-      mockPoolCalls(poolAddress, block, UNISWAP_POOL_IFACE, [
+      mockPoolCalls(mockProvider, poolAddress, block, UNISWAP_POOL_IFACE, [
         ["token0", token0],
         ["token1", token1],
         ["fee", fee],
       ]);
 
-      mockERC20Calls(token0, token1, block);
+      mockERC20Calls(mockProvider, token0, token1, block);
 
       const poolData = await fetcher.isUniswapPool(poolAddress, block);
 

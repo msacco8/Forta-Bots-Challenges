@@ -31,5 +31,5 @@ This bot detects Swap events that are emitted by Uniswap V3 pools
 
 The bot behaviour can be verified with the following transactions:
 
-- [0x89cc7de142692e2d869a6c680a4e866c5221737f720dce4fff6e6745d25c9a11] (https://etherscan.io/tx/0x89cc7de142692e2d869a6c680a4e866c5221737f720dce4fff6e6745d25c9a11)
-- [0x51533a39eb28fb8a43f8054634c92dfb29c782857a270b843b2a7cd778f33cbd] (https://etherscan.io/tx/0x51533a39eb28fb8a43f8054634c92dfb29c782857a270b843b2a7cd778f33cbd)
+- [0x89cc7de142692e2d869a6c680a4e866c5221737f720dce4fff6e6745d25c9a11](https://etherscan.io/tx/0x89cc7de142692e2d869a6c680a4e866c5221737f720dce4fff6e6745d25c9a11)
+- [0x51533a39eb28fb8a43f8054634c92dfb29c782857a270b843b2a7cd778f33cbd](https://etherscan.io/tx/0x51533a39eb28fb8a43f8054634c92dfb29c782857a270b843b2a7cd778f33cbd)
