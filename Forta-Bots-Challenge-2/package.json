@@ -1,0 +1,48 @@
+{
+  "name": "uniswap-v3-detection-bot",
+  "displayName": "Uniswap V3 Swap Detection Bot",
+  "version": "0.0.1",
+  "description": "Detects Swap events emitted by pool contracts deployed by Uniswap V3",
+  "longDescription": "This bot filters for emitted Swap events then calls the read factory function on the pool to verify if the pool was deployed by Uniswap V3.",
+  "repository": "https://github.com/msacco8/Forta-Bots-Challenges/Forta-Bots-Challenge-2",
+  "licenseUrl": "https://github.com/forta-network/forta-bot-sdk/blob/master/starter-project/LICENSE.md",
+  "promoUrl": "https://forta.org",
+  "chainIds": [
+    1
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run start:dev",
+    "start:dev": "nodemon --watch src --watch forta.config.json -e js,ts,json  --exec \"npm run build && forta-agent run\"",
+    "start:prod": "forta-agent run --prod",
+    "tx": "npm run build && forta-agent run --tx",
+    "block": "npm run build && forta-agent run --block",
+    "range": "npm run build && forta-agent run --range",
+    "alert": "npm run build && forta-agent run --alert",
+    "sequence": "npm run build && forta-agent run --sequence",
+    "file": "npm run build && forta-agent run --file",
+    "publish": "forta-agent publish",
+    "info": "forta-agent info",
+    "logs": "forta-agent logs",
+    "push": "forta-agent push",
+    "disable": "forta-agent disable",
+    "enable": "forta-agent enable",
+    "keyfile": "forta-agent keyfile",
+    "stake": "forta-agent stake",
+    "test": "jest"
+  },
+  "dependencies": {
+    "lru-cache": "^10.1.0",
+    "forta-agent": "^0.1.45"
+  },
+  "devDependencies": {
+    "@types/jest": "^27.0.1",
+    "@types/nodemon": "^1.19.0",
+    "forta-agent-tools": "^3.2.10",
+    "jest": "^27.0.6",
+    "nodemon": "^2.0.8",
+    "prettier": "^3.1.1",
+    "ts-jest": "^27.0.3",
+    "typescript": "^4.3.4"
+  }
+}
