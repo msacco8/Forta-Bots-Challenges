@@ -32,12 +32,12 @@
     "test": "jest"
   },
   "dependencies": {
-    "lru-cache": "^10.1.0"
+    "lru-cache": "^10.1.0",
+    "forta-agent": "^0.1.45"
   },
   "devDependencies": {
     "@types/jest": "^27.0.1",
     "@types/nodemon": "^1.19.0",
-    "forta-agent": "^0.1.45",
     "forta-agent-tools": "^3.2.10",
     "jest": "^27.0.6",
     "nodemon": "^2.0.8",

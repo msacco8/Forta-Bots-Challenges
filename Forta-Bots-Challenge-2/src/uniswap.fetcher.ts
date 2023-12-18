@@ -45,8 +45,8 @@ export default class UniswapFetcher {
       // call swapped token contracts to get symbols for metadata
       const tokenZeroContract = new Contract(token0, ERC20_ABI, this.provider);
       const tokenOneContract = new Contract(token1, ERC20_ABI, this.provider);
-      const tokenZeroSymbol = await tokenZeroContract.symbol({ blockTag: block });
-      const tokenOneSymbol = await tokenOneContract.symbol({ blockTag: block });
+      const tokenZeroSymbol = isUniswapPool ? await tokenZeroContract.symbol({ blockTag: block }) : "";
+      const tokenOneSymbol = isUniswapPool ? await tokenOneContract.symbol({ blockTag: block }) : "";
 
       const poolData: PoolData = {
         isUniswapPool,
