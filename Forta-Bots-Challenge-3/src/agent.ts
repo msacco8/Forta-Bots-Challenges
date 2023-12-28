@@ -1,47 +1,38 @@
-import { BlockEvent, Finding, Initialize, HandleBlock, getEthersProvider } from "forta-agent";
-import { ERC20_ABI, L1_DAI_CONTRACT_ADDRESS } from "./constants";
-import NetworkManager, { NETWORK_MAP, NetworkData } from "./network";
-import { providers, Contract } from "ethers";
-import { createFinding } from "./finding";
+import { BlockEvent, Finding, HandleBlock, getEthersProvider } from "forta-agent";
+import {
+  L1_ARBITRUM_ESCROW_ADDRESS,
+  L1_DAI_CONTRACT_ADDRESS,
+  L1_OPTIMISM_ESCROW_ADDRESS,
+  L2_DAI_ADDRESS,
+} from "./constants";
+import { providers } from "ethers";
+import { emitEscrowBalance, checkInvariant, contractAddresses } from "./utils";
 
-let networkManager: NetworkManager;
-let l1DaiContract: Contract;
-
-export const provideInitialize = (
-  networkMap: Record<number, NetworkData>,
-  ethersProvider: providers.Provider,
-  l1DaiContractAddress: string,
-  erc20Abi: string[]
-): Initialize => {
-  return async () => {
-    networkManager = new NetworkManager(networkMap);
-    l1DaiContract = new Contract(l1DaiContractAddress, erc20Abi, ethersProvider);
-  };
-};
-
-export const provideHandleBlock = (): HandleBlock => {
+export const provideHandleBlock = (provider: providers.Provider, contractAddresses: contractAddresses): HandleBlock => {
   return async (BlockEvent: BlockEvent) => {
     const findings: Finding[] = [];
+    const { chainId } = await provider.getNetwork();
     const blockNumber = BlockEvent.blockNumber;
+    const { l1DaiAddress, l2DaiAddress, optimismEscrow, arbitrumEscrow } = contractAddresses;
 
-    for (const network in networkManager.networkMap) {
-      // get first network details
-      networkManager.setNetwork(network);
-
-      // get balance of l2 network's l1 escrow contract and l2 DAI supply
-      const escrowBalance = await networkManager.getL1Escrow(l1DaiContract, blockNumber);
-      const l2DaiSupply = await networkManager.getL2Supply(blockNumber);
-
-      // check if invariant is violated and generate finding if so
-      if (escrowBalance.lt(l2DaiSupply)) {
-        findings.push(createFinding(networkManager.chainId, networkManager.chainName, [escrowBalance, l2DaiSupply]));
-      }
+    // delegate balance logic for each chain bot is running on
+    if (chainId === 1) {
+      // get DAI balance for each L2's escrow contract
+      await emitEscrowBalance(provider, blockNumber, l1DaiAddress, optimismEscrow, arbitrumEscrow);
+    } else {
+      // compare escrow balances with L2 DAI balances
+      await checkInvariant(provider, blockNumber, findings, chainId, l2DaiAddress);
     }
+
     return findings;
   };
 };
 
 export default {
-  initialize: provideInitialize(NETWORK_MAP, getEthersProvider(), L1_DAI_CONTRACT_ADDRESS, ERC20_ABI),
-  handleBlock: provideHandleBlock(),
+  handleBlock: provideHandleBlock(getEthersProvider(), {
+    l1DaiAddress: L1_DAI_CONTRACT_ADDRESS,
+    l2DaiAddress: L2_DAI_ADDRESS,
+    optimismEscrow: L1_OPTIMISM_ESCROW_ADDRESS,
+    arbitrumEscrow: L1_ARBITRUM_ESCROW_ADDRESS,
+  }),
 };
