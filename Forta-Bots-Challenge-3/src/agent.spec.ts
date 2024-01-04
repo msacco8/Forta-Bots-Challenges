@@ -2,7 +2,6 @@ import {
   FindingType,
   FindingSeverity,
   HandleBlock,
-  createBlockEvent,
   AlertsResponse,
   Alert,
   AlertQueryOptions,
@@ -15,16 +14,16 @@ import { AlertSource } from "forta-agent-tools/lib/utils";
 import { Interface } from "ethers/lib/utils";
 import { BigNumber } from "ethers";
 import { contractAddresses } from "./utils";
-import { BOT_ID } from "./constants";
+import { BOT_ID, MAKER_INVARIANT_ALERT_ID, MAKER_ESCROW_ALERT_ID } from "./constants";
 
 const ERC20_IFACE = new Interface([
   "function totalSupply() external view returns (uint256)",
   "function balanceOf(address) external view returns (uint256)",
 ]);
 
-let mockL1Findings: Finding[] = []
+let mockL1Findings: Finding[] = [];
 
-const getAlertFromFinding = (finding: Finding) : Alert => {
+const getAlertFromFinding = (finding: Finding): Alert => {
   const { severity, type, source, timestamp, ...rest } = finding;
   const alertSource: AlertSource = {
     bot: {
@@ -41,12 +40,12 @@ const getAlertFromFinding = (finding: Finding) : Alert => {
     ...rest,
   };
   return Alert.fromObject(alertObject);
-}
+};
 
-const mockGetAlerts = (async (alertQuery: AlertQueryOptions): Promise<AlertsResponse> => {
+const mockGetAlerts = async (alertQuery: AlertQueryOptions): Promise<AlertsResponse> => {
   mockL1Findings.sort((a, b) => {
     return parseInt(b.metadata["blockNumber"]) - parseInt(a.metadata["blockNumber"]);
-  })
+  });
   const mockAlerts = mockL1Findings.map(getAlertFromFinding);
   const alerts = mockAlerts.filter(
     (alert) =>
@@ -64,13 +63,32 @@ const mockGetAlerts = (async (alertQuery: AlertQueryOptions): Promise<AlertsResp
     },
   };
   return alertsResponse;
-});
+};
 
-const createTestFinding = (chainId: number, chainName: string, supplies: BigNumber[]) => {
+export const createTestEscrowBalanceFinding = (
+  blockNumber: string,
+  optimismBalance: BigNumber,
+  arbitrumBalance: BigNumber
+) => {
+  return Finding.fromObject({
+    name: "Maker Bridge L1 DAI Escrow Balances",
+    description: `The amount of DAI held in Arbitrum and Optimism's L1 escrow contracts on Maker's bridge`,
+    alertId: MAKER_ESCROW_ALERT_ID,
+    severity: FindingSeverity.Low,
+    type: FindingType.Info,
+    metadata: {
+      blockNumber,
+      optimismBalance: optimismBalance.toString(),
+      arbitrumBalance: arbitrumBalance.toString(),
+    },
+  });
+};
+
+const createTestInvariantViolationFinding = (chainId: number, chainName: string, supplies: BigNumber[]) => {
   return {
-    name: "L2 Dai Supply Invariant Violated",
-    description: `The DAI held in the L1 escrow contract is less than the supply of ${chainName} DAI.`,
-    alertId: "NETHERMIND-L2-DAI-INVARIANT",
+    name: "Maker Bridge L2 Dai Supply Invariant Violated",
+    description: `The DAI held in Maker's Bridge's L1 escrow contract is less than the supply of ${chainName} DAI.`,
+    alertId: MAKER_INVARIANT_ALERT_ID,
     severity: FindingSeverity.High,
     type: FindingType.Suspicious,
     metadata: {
@@ -125,12 +143,11 @@ const mockArbitrumChainId = 42161;
 
 describe("DAI invariant watcher bot", () => {
   let handleBlock: HandleBlock;
-  let mockBlockEvent = createBlockEvent({} as any);
+  let mockBlockEvent = new TestBlockEvent();
   let mockProvider: MockEthersProvider;
 
   beforeEach(async () => {
     mockL1Findings = [];
-    mockBlockEvent = new TestBlockEvent();
   });
 
   it("returns correct error if running on unsupported chain", async () => {
@@ -151,18 +168,21 @@ describe("DAI invariant watcher bot", () => {
     );
     handleBlock = provideHandleBlock(mockProvider as any, mockContractAddresses, mockGetAlerts);
     mockL1Findings = await handleBlock(mockBlockEvent);
+    expect(mockL1Findings).toStrictEqual([
+      createTestEscrowBalanceFinding(mockBlockEvent.blockNumber.toString(), BigNumber.from(10), BigNumber.from(10)),
+    ]);
 
     mockProvider = resetProvider(mockOptimismChainId);
-    mockL2Supply(mockProvider, mockBlockEvent.blockNumber, mockContractAddresses.l2DaiAddress, 15);
+    mockL2Supply(mockProvider, mockBlockEvent.blockNumber, mockContractAddresses.l2DaiAddress, 10);
     handleBlock = provideHandleBlock(mockProvider as any, mockContractAddresses, mockGetAlerts);
-    const findingsOne = await handleBlock(mockBlockEvent);
+    const optimismFindings = await handleBlock(mockBlockEvent);
+    expect(optimismFindings).toStrictEqual([]);
 
     mockProvider = resetProvider(mockArbitrumChainId);
     mockL2Supply(mockProvider, mockBlockEvent.blockNumber, mockContractAddresses.l2DaiAddress, 10);
     handleBlock = provideHandleBlock(mockProvider as any, mockContractAddresses, mockGetAlerts);
-    const findingsTwo = await handleBlock(mockBlockEvent);
-
-    expect(findingsOne.concat(findingsTwo)).toStrictEqual([]);
+    const arbitrumFindings = await handleBlock(mockBlockEvent);
+    expect(arbitrumFindings).toStrictEqual([]);
   });
 
   it("returns correct findings if L2 supply invariant is violated on Optimism", async () => {
@@ -176,22 +196,25 @@ describe("DAI invariant watcher bot", () => {
     );
     handleBlock = provideHandleBlock(mockProvider as any, mockContractAddresses, mockGetAlerts);
     mockL1Findings = await handleBlock(mockBlockEvent);
+    expect(mockL1Findings).toStrictEqual([
+      createTestEscrowBalanceFinding(mockBlockEvent.blockNumber.toString(), BigNumber.from(10), BigNumber.from(10)),
+    ]);
 
     mockProvider = resetProvider(mockOptimismChainId);
     mockL2Supply(mockProvider, mockBlockEvent.blockNumber, mockContractAddresses.l2DaiAddress, 11);
     handleBlock = provideHandleBlock(mockProvider as any, mockContractAddresses, mockGetAlerts);
     const optimismFindings = await handleBlock(mockBlockEvent);
+    expect(optimismFindings).toStrictEqual([
+      expect.objectContaining(
+        createTestInvariantViolationFinding(mockOptimismChainId, "Optimism", [BigNumber.from(10), BigNumber.from(11)])
+      ),
+    ]);
 
     mockProvider = resetProvider(mockArbitrumChainId);
     mockL2Supply(mockProvider, mockBlockEvent.blockNumber, mockContractAddresses.l2DaiAddress, 10);
     handleBlock = provideHandleBlock(mockProvider as any, mockContractAddresses, mockGetAlerts);
     const arbitrumFindings = await handleBlock(mockBlockEvent);
-
-    expect(optimismFindings.concat(arbitrumFindings)).toStrictEqual([
-      expect.objectContaining(
-        createTestFinding(mockOptimismChainId, "Optimism", [BigNumber.from(10), BigNumber.from(11)])
-      ),
-    ]);
+    expect(arbitrumFindings).toStrictEqual([]);
   });
 
   it("returns correct findings if L2 supply invariant is violated on Arbitrum", async () => {
@@ -205,20 +228,23 @@ describe("DAI invariant watcher bot", () => {
     );
     handleBlock = provideHandleBlock(mockProvider as any, mockContractAddresses, mockGetAlerts);
     mockL1Findings = await handleBlock(mockBlockEvent);
+    expect(mockL1Findings).toStrictEqual([
+      createTestEscrowBalanceFinding(mockBlockEvent.blockNumber.toString(), BigNumber.from(10), BigNumber.from(10)),
+    ]);
 
     mockProvider = resetProvider(mockOptimismChainId);
     mockL2Supply(mockProvider, mockBlockEvent.blockNumber, mockContractAddresses.l2DaiAddress, 10);
     handleBlock = provideHandleBlock(mockProvider as any, mockContractAddresses, mockGetAlerts);
     const optimismFindings = await handleBlock(mockBlockEvent);
+    expect(optimismFindings).toStrictEqual([]);
 
     mockProvider = resetProvider(mockArbitrumChainId);
     mockL2Supply(mockProvider, mockBlockEvent.blockNumber, mockContractAddresses.l2DaiAddress, 11);
     handleBlock = provideHandleBlock(mockProvider as any, mockContractAddresses, mockGetAlerts);
     const arbitrumFindings = await handleBlock(mockBlockEvent);
-
-    expect(optimismFindings.concat(arbitrumFindings)).toStrictEqual([
+    expect(arbitrumFindings).toStrictEqual([
       expect.objectContaining(
-        createTestFinding(mockArbitrumChainId, "Arbitrum", [BigNumber.from(10), BigNumber.from(11)])
+        createTestInvariantViolationFinding(mockArbitrumChainId, "Arbitrum", [BigNumber.from(10), BigNumber.from(11)])
       ),
     ]);
   });
@@ -234,22 +260,27 @@ describe("DAI invariant watcher bot", () => {
     );
     handleBlock = provideHandleBlock(mockProvider as any, mockContractAddresses, mockGetAlerts);
     mockL1Findings = await handleBlock(mockBlockEvent);
+    expect(mockL1Findings).toStrictEqual([
+      createTestEscrowBalanceFinding(mockBlockEvent.blockNumber.toString(), BigNumber.from(10), BigNumber.from(10)),
+    ]);
 
     mockProvider = resetProvider(mockOptimismChainId);
     mockL2Supply(mockProvider, mockBlockEvent.blockNumber, mockContractAddresses.l2DaiAddress, 11);
     handleBlock = provideHandleBlock(mockProvider as any, mockContractAddresses, mockGetAlerts);
     const optimismFindings = await handleBlock(mockBlockEvent);
+    expect(optimismFindings).toStrictEqual([
+      expect.objectContaining(
+        createTestInvariantViolationFinding(mockOptimismChainId, "Optimism", [BigNumber.from(10), BigNumber.from(11)])
+      ),
+    ]);
 
     mockProvider = resetProvider(mockArbitrumChainId);
     mockL2Supply(mockProvider, mockBlockEvent.blockNumber, mockContractAddresses.l2DaiAddress, 11);
     handleBlock = provideHandleBlock(mockProvider as any, mockContractAddresses, mockGetAlerts);
     const arbitrumFindings = await handleBlock(mockBlockEvent);
-    expect(optimismFindings.concat(arbitrumFindings)).toStrictEqual([
+    expect(arbitrumFindings).toStrictEqual([
       expect.objectContaining(
-        createTestFinding(mockOptimismChainId, "Optimism", [BigNumber.from(10), BigNumber.from(11)])
-      ),
-      expect.objectContaining(
-        createTestFinding(mockArbitrumChainId, "Arbitrum", [BigNumber.from(10), BigNumber.from(11)])
+        createTestInvariantViolationFinding(mockArbitrumChainId, "Arbitrum", [BigNumber.from(10), BigNumber.from(11)])
       ),
     ]);
   });
@@ -257,7 +288,7 @@ describe("DAI invariant watcher bot", () => {
   it("returns latest correct findings if there are messages from different blocks on L1", async () => {
     for (let i = 1; i < 3; i++) {
       mockProvider = resetProvider(mockEthereumChainId);
-      mockBlockEvent = createBlockEvent({ block: { number: i } } as any);
+      mockBlockEvent.setNumber(i);
       mockEscrowBalances(
         mockProvider,
         mockBlockEvent.blockNumber,
@@ -271,22 +302,28 @@ describe("DAI invariant watcher bot", () => {
         mockL1Findings.push(finding);
       }
     }
+    expect(mockL1Findings).toStrictEqual([
+      createTestEscrowBalanceFinding("1", BigNumber.from(9), BigNumber.from(9)),
+      createTestEscrowBalanceFinding("2", BigNumber.from(10), BigNumber.from(10)),
+    ]);
 
     mockProvider = resetProvider(mockOptimismChainId);
     mockL2Supply(mockProvider, mockBlockEvent.blockNumber, mockContractAddresses.l2DaiAddress, 11);
     handleBlock = provideHandleBlock(mockProvider as any, mockContractAddresses, mockGetAlerts);
     const optimismFindings = await handleBlock(mockBlockEvent);
+    expect(optimismFindings).toStrictEqual([
+      expect.objectContaining(
+        createTestInvariantViolationFinding(mockOptimismChainId, "Optimism", [BigNumber.from(10), BigNumber.from(11)])
+      ),
+    ]);
 
     mockProvider = resetProvider(mockArbitrumChainId);
     mockL2Supply(mockProvider, mockBlockEvent.blockNumber, mockContractAddresses.l2DaiAddress, 11);
     handleBlock = provideHandleBlock(mockProvider as any, mockContractAddresses, mockGetAlerts);
     const arbitrumFindings = await handleBlock(mockBlockEvent);
-    expect(optimismFindings.concat(arbitrumFindings)).toStrictEqual([
+    expect(arbitrumFindings).toStrictEqual([
       expect.objectContaining(
-        createTestFinding(mockOptimismChainId, "Optimism", [BigNumber.from(10), BigNumber.from(11)])
-      ),
-      expect.objectContaining(
-        createTestFinding(mockArbitrumChainId, "Arbitrum", [BigNumber.from(10), BigNumber.from(11)])
+        createTestInvariantViolationFinding(mockArbitrumChainId, "Arbitrum", [BigNumber.from(10), BigNumber.from(11)])
       ),
     ]);
   });
@@ -295,13 +332,13 @@ describe("DAI invariant watcher bot", () => {
     mockProvider = resetProvider(mockOptimismChainId);
     mockL2Supply(mockProvider, mockBlockEvent.blockNumber, mockContractAddresses.l2DaiAddress, 15);
     handleBlock = provideHandleBlock(mockProvider as any, mockContractAddresses, mockGetAlerts);
-    const findingsOne = await handleBlock(mockBlockEvent);
+    const optimismFindings = await handleBlock(mockBlockEvent);
+    expect(optimismFindings).toStrictEqual([]);
 
     mockProvider = resetProvider(mockArbitrumChainId);
     mockL2Supply(mockProvider, mockBlockEvent.blockNumber, mockContractAddresses.l2DaiAddress, 10);
     handleBlock = provideHandleBlock(mockProvider as any, mockContractAddresses, mockGetAlerts);
-    const findingsTwo = await handleBlock(mockBlockEvent);
-
-    expect(findingsOne.concat(findingsTwo)).toStrictEqual([]);
+    const arbitrumFindings = await handleBlock(mockBlockEvent);
+    expect(arbitrumFindings).toStrictEqual([]);
   });
 });

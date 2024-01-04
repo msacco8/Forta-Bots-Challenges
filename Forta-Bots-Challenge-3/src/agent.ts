@@ -1,5 +1,6 @@
 import { BlockEvent, Finding, HandleBlock, getAlerts, getEthersProvider } from "forta-agent";
 import {
+  ETH_CHAIN_ID,
   L1_ARBITRUM_ESCROW_ADDRESS,
   L1_DAI_CONTRACT_ADDRESS,
   L1_OPTIMISM_ESCROW_ADDRESS,
@@ -10,7 +11,11 @@ import { emitEscrowBalance, checkInvariant, contractAddresses, escrowBalances } 
 
 let prevEscrowBalances: escrowBalances;
 
-export const provideHandleBlock = (provider: providers.Provider, contractAddresses: contractAddresses, getAlerts: any): HandleBlock => {
+export const provideHandleBlock = (
+  provider: providers.Provider,
+  contractAddresses: contractAddresses,
+  getAlerts: any
+): HandleBlock => {
   return async (BlockEvent: BlockEvent) => {
     const findings: Finding[] = [];
     const { chainId } = await provider.getNetwork();
@@ -18,7 +23,7 @@ export const provideHandleBlock = (provider: providers.Provider, contractAddress
     const { l1DaiAddress, l2DaiAddress, optimismEscrow, arbitrumEscrow } = contractAddresses;
 
     // delegate balance logic for each chain bot is running on
-    if (chainId === 1) {
+    if (chainId === ETH_CHAIN_ID) {
       // get DAI balance for each L2's escrow contract
       prevEscrowBalances = await emitEscrowBalance(
         provider,
@@ -39,10 +44,14 @@ export const provideHandleBlock = (provider: providers.Provider, contractAddress
 };
 
 export default {
-  handleBlock: provideHandleBlock(getEthersProvider(), {
-    l1DaiAddress: L1_DAI_CONTRACT_ADDRESS,
-    l2DaiAddress: L2_DAI_ADDRESS,
-    optimismEscrow: L1_OPTIMISM_ESCROW_ADDRESS,
-    arbitrumEscrow: L1_ARBITRUM_ESCROW_ADDRESS,
-  }, getAlerts),
+  handleBlock: provideHandleBlock(
+    getEthersProvider(),
+    {
+      l1DaiAddress: L1_DAI_CONTRACT_ADDRESS,
+      l2DaiAddress: L2_DAI_ADDRESS,
+      optimismEscrow: L1_OPTIMISM_ESCROW_ADDRESS,
+      arbitrumEscrow: L1_ARBITRUM_ESCROW_ADDRESS,
+    },
+    getAlerts
+  ),
 };
