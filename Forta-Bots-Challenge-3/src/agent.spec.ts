@@ -65,7 +65,7 @@ const mockGetAlerts = async (alertQuery: AlertQueryOptions): Promise<AlertsRespo
   return alertsResponse;
 };
 
-export const createTestEscrowBalanceFinding = (
+const createTestEscrowBalanceFinding = (
   blockNumber: string,
   optimismBalance: BigNumber,
   arbitrumBalance: BigNumber
