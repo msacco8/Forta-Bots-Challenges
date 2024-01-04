@@ -13,6 +13,7 @@ This bot detects when the MakerDAO bridge invariant is violated on Arbitrum and/
 ## Alerts
 
 - NETHERMIND-5
+
   - Fired each block to emit L2 escrow balances on L1 DAI contract
   - Severity is always set to "low"
   - Type is always set to "info"
