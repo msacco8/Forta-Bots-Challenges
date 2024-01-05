@@ -12,7 +12,7 @@ This bot detects when the MakerDAO bridge invariant is violated on Arbitrum and/
 
 ## Alerts
 
-- MakerDAO-ESCROW
+- MAKERDAO-ESCROW
 
   - Fired each block to emit L2 escrow balances on L1 DAI contract
   - Severity is always set to "low"
@@ -22,7 +22,7 @@ This bot detects when the MakerDAO bridge invariant is violated on Arbitrum and/
     - `optimismBalance`: L1 DAI balance of Optimism's escrow contract
     - `arbitrumBalance`: L1 DAI balance of Arbitrum's escrow contract
 
-- MakerDAO-L2-DAI-INVARIANT
+- MAKERDAO-L2-DAI-INVARIANT
   - Fired when the supply invariant of the MakerDAO Bridge is violated on Optimism and/or Arbitrum
   - Severity is always set to "high"
   - Type is always set to "suspicious"

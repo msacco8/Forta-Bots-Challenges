@@ -34,8 +34,8 @@ export const emitEscrowBalance = async (
   // create and send finding only if balances are not defined or have changed since last alert
   if (
     !prevEscrowBalance ||
-    prevEscrowBalance["optimismEscrowBalance"] !== optimismEscrowBalance ||
-    prevEscrowBalance["arbitrumEscrowBalance"] !== arbitrumEscrowBalance
+    prevEscrowBalance["optimismEscrowBalance"] !== optimismEscrowBalance.toString() ||
+    prevEscrowBalance["arbitrumEscrowBalance"] !== arbitrumEscrowBalance.toString()
   ) {
     const escrowBalanceFinding = createEscrowBalanceFinding(
       blockNumber.toString(),

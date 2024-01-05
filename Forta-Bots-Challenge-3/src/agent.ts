@@ -1,4 +1,4 @@
-import { BlockEvent, Finding, HandleBlock, getAlerts, getEthersProvider } from "forta-agent";
+import { GetAlerts, BlockEvent, Finding, HandleBlock, getAlerts, getEthersProvider } from "forta-agent";
 import {
   ETH_CHAIN_ID,
   L1_ARBITRUM_ESCROW_ADDRESS,
@@ -14,7 +14,7 @@ let prevEscrowBalances: escrowBalances;
 export const provideHandleBlock = (
   provider: providers.Provider,
   contractAddresses: contractAddresses,
-  getAlerts: any
+  getAlerts: GetAlerts
 ): HandleBlock => {
   return async (BlockEvent: BlockEvent) => {
     const findings: Finding[] = [];
