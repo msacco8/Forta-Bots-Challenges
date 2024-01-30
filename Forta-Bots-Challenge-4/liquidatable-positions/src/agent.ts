@@ -59,7 +59,7 @@ export const provideHandleTransaction = (cometWithdrawSupplySignatures: string[]
                   ? await positionFetcherWETH.delegateCall(call, txEvent.from, txEvent.blockNumber)
                   : { newPosition: false, position: emptyPositionData };
 
-            // generate findings for new/updated positions
+            // generate findings for new or updated positions
             if (positionResponse.newPosition) {
               findings.push(createNewPositionFinding(baseAssetAddresses, positionResponse.position));
             }
