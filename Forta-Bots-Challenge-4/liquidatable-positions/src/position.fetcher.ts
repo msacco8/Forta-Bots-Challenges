@@ -70,7 +70,7 @@ export default class PositionFetcher {
     this.cacheIndices.set(key, this.cacheOrder.length - 1);
   }
 
-  // maintain FIFO functionality, performance trade off
+  // maintain LIFO functionality, performance trade off
   private async removeFromCache(keys: string[]) {
     const keysSet: Set<string> = new Set<string>();
     keys.forEach((key) => {

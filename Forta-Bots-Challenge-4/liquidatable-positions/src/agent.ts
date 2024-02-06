@@ -50,19 +50,17 @@ export const provideHandleTransaction = (cometWithdrawSupplySignatures: string[]
           positionFetcherWETH.cometAddress,
         ])
         .map(async (call) => {
-          if (txEvent.to) {
-            // dispatch withdraw/supply call info to base asset's fetcher
-            const positionResponse: PositionDataResponse =
-              call.address === positionFetcherUSDC.cometAddress
-                ? await positionFetcherUSDC.delegateCall(call, txEvent.from, txEvent.blockNumber)
-                : call.address === positionFetcherWETH.cometAddress
-                  ? await positionFetcherWETH.delegateCall(call, txEvent.from, txEvent.blockNumber)
-                  : { newPosition: false, position: emptyPositionData };
+          // dispatch withdraw/supply call info to base asset's fetcher
+          const positionResponse: PositionDataResponse =
+            call.address === positionFetcherUSDC.cometAddress
+              ? await positionFetcherUSDC.delegateCall(call, txEvent.from, txEvent.blockNumber)
+              : call.address === positionFetcherWETH.cometAddress
+                ? await positionFetcherWETH.delegateCall(call, txEvent.from, txEvent.blockNumber)
+                : { newPosition: false, position: emptyPositionData };
 
-            // generate findings for new or updated positions
-            if (positionResponse.newPosition) {
-              findings.push(createNewPositionFinding(baseAssetAddresses, positionResponse.position));
-            }
+          // generate findings for new or updated positions
+          if (positionResponse.newPosition) {
+            findings.push(createNewPositionFinding(baseAssetAddresses, positionResponse.position));
           }
         })
     );
