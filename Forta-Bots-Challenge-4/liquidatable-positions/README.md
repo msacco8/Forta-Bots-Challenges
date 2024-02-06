@@ -29,6 +29,7 @@ This bot monitors COMP III's Comet Ethereum Mainnet contracts for base assets WE
 
 ## Test Data
 
-The bot behaviour can be verified with the following transactions (note that transaction may be outdated and position may no longer be open):
+The bot behaviour can be verified with the following transactions:
+- _Note_: Ttransaction may be outdated and position may no longer be open
 
 - [0x23e5a57dcd73dff352684d26337bfc29d02444b04811078fcd761fc867ca20f9](https://etherscan.io/tx/0x23e5a57dcd73dff352684d26337bfc29d02444b04811078fcd761fc867ca20f9)
