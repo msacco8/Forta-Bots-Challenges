@@ -2,17 +2,35 @@ import { HandleTransaction, Initialize, Finding, FindingType, FindingSeverity, H
 import { provideHandleTransaction, provideInitialize, provideHandleBlock } from "./agent";
 import { MockEthersProvider, TestBlockEvent, TestTransactionEvent } from "forta-agent-tools/lib/test";
 import { createAddress } from "forta-agent-tools";
-import { Interface } from "ethers/lib/utils";
 import { BigNumber } from "ethers";
 import {
   CollateralAddresses,
   PositionData,
   emptyPositionData,
   Liquidatable,
-  FetcherConfig,
   CollateralQuotes,
   CollateralBalances,
-} from "./agent.utils";
+} from "./mock.agent.utils";
+import {
+  mockCallSignatures,
+  mockCometIFACE,
+  mockCometSignaturesIFACE,
+  mockERC20IFACE,
+  mockFetcherConfigUSDC,
+  mockFetcherConfigWETH,
+  mockManaged,
+  mockSendees,
+  mockSenders,
+  mockBaseUSDC,
+  mockCometSignatures,
+  mockCollateralUSDC,
+  mockBaseWETH,
+  mockCollateralWETH,
+  mockCometABI,
+  mockCometAddressUSDC,
+  mockCometAddressWETH,
+  mockERC20ABI
+} from "./mock.constants"
 
 const createTestNewPositionFinding = (newPosition: PositionData) => {
   const newPositionToken = newPosition.token.toLowerCase();
@@ -65,81 +83,81 @@ const createCollateralObject = (baseAsset: string, values: string[]): Collateral
       };
 };
 
-const mockCallSignatures: string[] = ["withdraw", "withdrawTo", "withdrawFrom", "supply", "supplyTo", "supplyFrom"];
+// const mockCallSignatures: string[] = ["withdraw", "withdrawTo", "withdrawFrom", "supply", "supplyTo", "supplyFrom"];
 
-const mockBorrowThresholdUSDC: BigNumber = BigNumber.from(50);
-const mockBorrowThresholdWETH: BigNumber = BigNumber.from(5);
+// const mockBorrowThresholdUSDC: BigNumber = BigNumber.from(50);
+// const mockBorrowThresholdWETH: BigNumber = BigNumber.from(5);
 
-const mockCometAddressUSDC: string = createAddress("0xa1");
-const mockCometAddressWETH: string = createAddress("0xa2");
+// const mockCometAddressUSDC: string = createAddress("0xa1");
+// const mockCometAddressWETH: string = createAddress("0xa2");
 
-const mockBaseUSDC: string = createAddress("0xa3");
-const mockBaseWETH: string = createAddress("0xa4");
+// const mockBaseUSDC: string = createAddress("0xa3");
+// const mockBaseWETH: string = createAddress("0xa4");
 
-const mockERC20ABI: string[] = ["function balanceOf(address) external view returns (uint256)"];
-const mockCometABI: string[] = [
-  "function isLiquidatable(address) public view returns (bool)",
-  "function borrowBalanceOf(address) public view returns (uint256)",
-  "function quoteCollateral(address, uint) public view returns (uint)",
-];
-const mockCometSignatures: string[] = [
-  "function withdraw(address, uint) external",
-  "function withdrawTo(address, address, uint) external",
-  "function withdrawFrom(address, address, address, uint) external",
-  "function supply(address, uint) external",
-  "function supplyTo(address, address, uint) external",
-  "function supplyFrom(address, address, address, uint) external",
-];
+// const mockERC20ABI: string[] = ["function balanceOf(address) external view returns (uint256)"];
+// const mockCometABI: string[] = [
+//   "function isLiquidatable(address) public view returns (bool)",
+//   "function borrowBalanceOf(address) public view returns (uint256)",
+//   "function quoteCollateral(address, uint) public view returns (uint)",
+// ];
+// const mockCometSignatures: string[] = [
+//   "function withdraw(address, uint) external",
+//   "function withdrawTo(address, address, uint) external",
+//   "function withdrawFrom(address, address, address, uint) external",
+//   "function supply(address, uint) external",
+//   "function supplyTo(address, address, uint) external",
+//   "function supplyFrom(address, address, address, uint) external",
+// ];
 
-const mockERC20IFACE: Interface = new Interface(mockERC20ABI);
-const mockCometIFACE: Interface = new Interface(mockCometABI);
-const mockCometSignaturesIFACE: Interface = new Interface(mockCometSignatures);
+// const mockERC20IFACE: Interface = new Interface(mockERC20ABI);
+// const mockCometIFACE: Interface = new Interface(mockCometABI);
+// const mockCometSignaturesIFACE: Interface = new Interface(mockCometSignatures);
 
-const mockCollateralUSDC: CollateralAddresses = {
-  WBTC: createAddress("0xb1"),
-  WETH: createAddress("0xb2"),
-  COMP: createAddress("0xb3"),
-  UNI: createAddress("0xb4"),
-  LINK: createAddress("0xb5"),
-};
-const mockCollateralWETH: CollateralAddresses = {
-  wstETH: createAddress("0xc1"),
-  cbETH: createAddress("0xc2"),
-  rETH: createAddress("0xc3"),
-};
+// const mockCollateralUSDC: CollateralAddresses = {
+//   WBTC: createAddress("0xb1"),
+//   WETH: createAddress("0xb2"),
+//   COMP: createAddress("0xb3"),
+//   UNI: createAddress("0xb4"),
+//   LINK: createAddress("0xb5"),
+// };
+// const mockCollateralWETH: CollateralAddresses = {
+//   wstETH: createAddress("0xc1"),
+//   cbETH: createAddress("0xc2"),
+//   rETH: createAddress("0xc3"),
+// };
 
-const mockFetcherConfigUSDC: FetcherConfig = {
-  cometAddress: mockCometAddressUSDC,
-  baseAssetAddress: mockBaseUSDC,
-  collateralAddresses: mockCollateralUSDC,
-  borrowThreshold: mockBorrowThresholdUSDC,
-  maxPositions: 5,
-};
-const mockFetcherConfigWETH: FetcherConfig = {
-  cometAddress: mockCometAddressWETH,
-  baseAssetAddress: mockBaseWETH,
-  collateralAddresses: mockCollateralWETH,
-  borrowThreshold: mockBorrowThresholdWETH,
-  maxPositions: 5,
-};
+// const mockFetcherConfigUSDC: FetcherConfig = {
+//   cometAddress: mockCometAddressUSDC,
+//   baseAssetAddress: mockBaseUSDC,
+//   collateralAddresses: mockCollateralUSDC,
+//   borrowThreshold: mockBorrowThresholdUSDC,
+//   maxPositions: 5,
+// };
+// const mockFetcherConfigWETH: FetcherConfig = {
+//   cometAddress: mockCometAddressWETH,
+//   baseAssetAddress: mockBaseWETH,
+//   collateralAddresses: mockCollateralWETH,
+//   borrowThreshold: mockBorrowThresholdWETH,
+//   maxPositions: 5,
+// };
 
-const mockSenders: string[] = [
-  createAddress("0xd1"),
-  createAddress("0xd2"),
-  createAddress("0xd3"),
-  createAddress("0xd4"),
-  createAddress("0xd5"),
-  createAddress("0xd6"),
-];
+// const mockSenders: string[] = [
+//   createAddress("0xd1"),
+//   createAddress("0xd2"),
+//   createAddress("0xd3"),
+//   createAddress("0xd4"),
+//   createAddress("0xd5"),
+//   createAddress("0xd6"),
+// ];
 
-const mockSendees: string[] = [
-  createAddress("0xe1"),
-  createAddress("0xe2"),
-  createAddress("0xe3"),
-  createAddress("0xe4"),
-];
+// const mockSendees: string[] = [
+//   createAddress("0xe1"),
+//   createAddress("0xe2"),
+//   createAddress("0xe3"),
+//   createAddress("0xe4"),
+// ];
 
-const mockManaged: string[] = [createAddress("0xf1"), createAddress("0xf2")];
+// const mockManaged: string[] = [createAddress("0xf1"), createAddress("0xf2")];
 
 describe("Comp III Position Tracker Test Suite", () => {
   let handleTransaction: HandleTransaction;
