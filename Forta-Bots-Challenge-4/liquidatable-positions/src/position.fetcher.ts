@@ -100,12 +100,12 @@ export default class PositionFetcher {
   }
 
   // query balance to determine if call signifies new/updated position, then create position object to send back
-  private async handleCall(borrower: string, borrowAsset: string, blockNumber: number): Promise<PositionDataResponse> {
+  private async handleCall(borrower: string, asset: string, blockNumber: number): Promise<PositionDataResponse> {
     const borrowBalanceOf: BigNumber = await this.cometContract.borrowBalanceOf(borrower, { blockTag: blockNumber });
-    if (this.baseAssetAddress.toLowerCase() === borrowAsset.toLowerCase() && borrowBalanceOf.gt(this.borrowThreshold)) {
+    if (this.baseAssetAddress.toLowerCase() === asset.toLowerCase() && borrowBalanceOf.gt(this.borrowThreshold)) {
       const position: PositionData = {
         owner: borrower,
-        token: borrowAsset,
+        token: asset,
       };
       this.addToCache(borrower, position);
       return { newPosition: true, position };
