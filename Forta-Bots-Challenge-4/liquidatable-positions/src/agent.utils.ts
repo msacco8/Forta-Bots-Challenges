@@ -22,7 +22,7 @@ export type PositionData = {
 };
 
 export type PositionDataResponse = {
-  newPosition: boolean;
+  newOrUpdatedPosition: boolean;
   position: PositionData;
 };
 
@@ -48,7 +48,7 @@ export const emptyPositionData: PositionData = {
 };
 
 export const emptyPositionDataResponse: PositionDataResponse = {
-  newPosition: false,
+  newOrUpdatedPosition: false,
   position: emptyPositionData,
 };
 

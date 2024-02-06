@@ -108,7 +108,7 @@ export default class PositionFetcher {
         token: asset,
       };
       this.addToCache(borrower, position);
-      return { newPosition: true, position };
+      return { newOrUpdatedPosition: true, position };
     }
     return { ...emptyPositionDataResponse };
   }
