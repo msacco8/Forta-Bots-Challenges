@@ -3,7 +3,14 @@ import { Interface } from "ethers/lib/utils";
 import { BigNumber } from "ethers";
 import { CollateralAddresses, FetcherConfig } from "./mock.agent.utils";
 
-export const mockCallSignatures: string[] = ["withdraw", "withdrawTo", "withdrawFrom", "supply", "supplyTo", "supplyFrom"];
+export const mockCallSignatures: string[] = [
+  "withdraw",
+  "withdrawTo",
+  "withdrawFrom",
+  "supply",
+  "supplyTo",
+  "supplyFrom",
+];
 
 const mockBorrowThresholdUSDC: BigNumber = BigNumber.from(50);
 const mockBorrowThresholdWETH: BigNumber = BigNumber.from(5);

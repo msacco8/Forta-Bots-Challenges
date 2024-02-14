@@ -29,8 +29,8 @@ import {
   mockCometABI,
   mockCometAddressUSDC,
   mockCometAddressWETH,
-  mockERC20ABI
-} from "./mock.constants"
+  mockERC20ABI,
+} from "./mock.constants";
 
 const createTestNewPositionFinding = (newPosition: PositionData) => {
   const newPositionToken = newPosition.token.toLowerCase();
