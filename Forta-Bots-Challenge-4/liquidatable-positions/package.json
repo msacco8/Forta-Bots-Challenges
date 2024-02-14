@@ -1,0 +1,47 @@
+{
+  "name": "compound-v3-liquidatable-positions-bot",
+  "displayName": "Compound V3 Liquidatable Positions Bot",
+  "version": "0.0.1",
+  "description": "Detects liquidatable positions on Compound V3's Mainnet USDC and WETH instances",
+  "longDescription": "This bot tracks new or updated positions indicated by withdraw/supply function calls to Compound V3's Mainnet USDC and WETH instances. It then checks each position on every block to see if it is liquidatable, generating a finding with collateral information if so",
+  "repository": "https://github.com/msacco8/Forta-Bots-Challenges/Forta-Bots-Challenge-4/liquidatable-positions",
+  "licenseUrl": "https://github.com/forta-network/forta-bot-sdk/blob/master/starter-project/LICENSE.md",
+  "promoUrl": "https://forta.org",
+  "chainIds": [
+    1
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run start:dev",
+    "start:dev": "nodemon --watch src --watch forta.config.json -e js,ts,json  --exec \"npm run build && forta-agent run\"",
+    "start:prod": "forta-agent run --prod",
+    "tx": "npm run build && forta-agent run --tx",
+    "block": "npm run build && forta-agent run --block",
+    "range": "npm run build && forta-agent run --range",
+    "alert": "npm run build && forta-agent run --alert",
+    "sequence": "npm run build && forta-agent run --sequence",
+    "file": "npm run build && forta-agent run --file",
+    "publish": "forta-agent publish",
+    "info": "forta-agent info",
+    "logs": "forta-agent logs",
+    "push": "forta-agent push",
+    "disable": "forta-agent disable",
+    "enable": "forta-agent enable",
+    "keyfile": "forta-agent keyfile",
+    "stake": "forta-agent stake",
+    "test": "jest"
+  },
+  "dependencies": {
+    "forta-agent": "^0.1.48",
+    "lru-cache": "^10.1.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.10",
+    "@types/nodemon": "^1.19.0",
+    "jest": "^29.7.0",
+    "nodemon": "^2.0.8",
+    "ts-jest": "^29.1.1",
+    "typescript": "^4.3.4",
+    "forta-agent-tools": "^3.2.12"
+  }
+}
